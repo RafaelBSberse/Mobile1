@@ -1,20 +1,36 @@
-import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, Text, View } from 'react-native';
+import React, { useEffect } from "react";
+import { NavigationContainer } from "@react-navigation/native";
+import { createStackNavigator } from "@react-navigation/stack";
+import { StatusBar } from "expo-status-bar";
+
+import HomeScreen from "./screens/HomeScreen";
+import AddTaskScreen from "./screens/AddTaskScreen";
+import { closeDB, dropTable, initDB } from "./database";
+import AddContactScreen from "./screens/AddContactScreen";
+import ContactList from "./screens/ContactList";
+
+const Stack = createStackNavigator();
 
 export default function App() {
-  return (
-    <View style={styles.container}>
-      <Text>Open up App.js to start working on your app!</Text>
-      <StatusBar style="auto" />
-    </View>
-  );
-}
+    useEffect(() => {
+        // dropTable();
+        initDB();
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-});
+        return () => {
+            closeDB();
+        };
+    }, []);
+
+    return (
+        <NavigationContainer>
+            <Stack.Navigator initialRouteName="Lista de Tarefas">
+                <Stack.Screen name="Lista de Tarefas" component={HomeScreen} />
+                <Stack.Screen name="Adicionar Tarefa" component={AddTaskScreen} />
+                <Stack.Screen name="Detalhes da Tarefa" component={AddTaskScreen} />
+                <Stack.Screen name="Adicionar Contato" component={AddContactScreen} />
+                <Stack.Screen name="Lista de Contatos" component={ContactList} />
+            </Stack.Navigator>
+            <StatusBar style="auto" />
+        </NavigationContainer>
+    );
+}
