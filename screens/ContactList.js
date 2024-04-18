@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { View, Button, StyleSheet, FlatList, Text, TouchableOpacity } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
 import Icon from 'react-native-vector-icons/FontAwesome';
-import { deleteContact, fetchContactsForList } from "../database";
+import { deleteContact, deleteTaskContactsByContactId, fetchContactsForList } from "../database";
 
 const ContactList = ({ navigation }) => {
     const [contacts, setContacts] = useState([]);
@@ -15,6 +15,7 @@ const ContactList = ({ navigation }) => {
 
     const handleDelete = (id) => {
         deleteContact(id);
+        deleteTaskContactsByContactId(id);
         fetchContactsForList(setContacts);
     }
 

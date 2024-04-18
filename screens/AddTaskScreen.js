@@ -7,7 +7,7 @@ import {
     Button,
     StyleSheet,
 } from "react-native";
-import { deleteTaskContacts, fetchContactsForList, getContactIdsByTaskId, getTaskById, insertTask, insertTaskContact, updateTask } from "../database";
+import { deleteTaskContactsByTaskId, fetchContactsForList, getContactIdsByTaskId, getTaskById, insertTask, insertTaskContact, updateTask } from "../database";
 import DropDownPicker from 'react-native-dropdown-picker';
 import { useFocusEffect } from "@react-navigation/native";
 
@@ -42,15 +42,15 @@ export default function AddTaskScreen({ navigation, route }) {
             getTaskById(taskId, (task) => {
                 setTaskName(task.taskName);
                 setTaskDescription(task.taskDescription);
-                setDate(new Date(task.date));
-                setTime(new Date(task.time));
+                setDate(new Date(task.taskDate));
+                setTime(new Date(task.taskTime));
             });
 
             getContactIdsByTaskId(taskId, setSelectedContacts);
         }
     }, [taskId]);
 
-    const onChange = (event, selectedDate) => {
+    const onChange = (event, selectedDate) => { 
         const currentDate = selectedDate || date;
         setDate(currentDate);
         setShowDate(false);
@@ -63,27 +63,31 @@ export default function AddTaskScreen({ navigation, route }) {
     };
 
     const addTask = () => {
-        const dateString = date.toISOString();
+        const dateSting = date.toISOString();
         const timeString = time.toISOString();
 
         if (taskId && taskId > 0) {
-            updateTask(taskId, taskName, taskDescription, dateString, timeString);
-            deleteTaskContacts(taskId);
+            updateTask(taskId, taskName, taskDescription, dateSting, timeString);
+            deleteTaskContactsByTaskId(taskId);
             selectedContacts.forEach((contactId) => insertTaskContact(taskId, contactId));
+            setIsEdit(false);
+
             return;
         }
 
-        insertTask(taskName, taskDescription, dateString, timeString, (taskIdReturn) => {
+        insertTask(taskName, taskDescription, dateSting, timeString, (taskIdReturn) => {
             selectedContacts.forEach((contactId) => insertTaskContact(taskIdReturn, contactId));
         });
 
         navigation.goBack();
     };
 
+    console.log(date, time)
+
     return (
         <View style={styles.container}>
             <Text style={styles.label}>Título da Tarefa</Text>
-            <TextInput style={styles.input} onChangeText={setTaskName} editable={isEdit} />
+            <TextInput style={styles.input} onChangeText={setTaskName} value={taskName} editable={isEdit} />
 
             <Text style={styles.label}>Descrição da Tarefa</Text>
             <TextInput
@@ -91,6 +95,7 @@ export default function AddTaskScreen({ navigation, route }) {
                 multiline={true}
                 numberOfLines={11}
                 onChangeText={setTaskDescription}
+                value={taskDescription}
                 editable={isEdit}
             />
 
@@ -102,9 +107,10 @@ export default function AddTaskScreen({ navigation, route }) {
                 multipleText={selectedContacts.map((idContato) => contacts.find((contato) => contato.value == idContato).label).join(", ")}
                 value={selectedContacts}
                 setValue={setSelectedContacts}
-                open={openDropdownContacts}
+                open={openDropdownContacts && isEdit}
                 setOpen={setOpenDropdownContacts}
                 placeholder="Selecione os contatos"
+                disabled={!isEdit}
             />
 
             <Text style={styles.label}>Data da Tarefa</Text>

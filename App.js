@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { NavigationContainer } from "@react-navigation/native";
 import { createStackNavigator } from "@react-navigation/stack";
 import { StatusBar } from "expo-status-bar";
@@ -13,7 +13,6 @@ const Stack = createStackNavigator();
 
 export default function App() {
     useEffect(() => {
-        // dropTable();
         initDB();
 
         return () => {

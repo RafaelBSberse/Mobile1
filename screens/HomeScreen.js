@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { View, Button, StyleSheet, FlatList, Text, TouchableOpacity } from "react-native";
-import { deleteTask, deleteTaskContacts, fetchTasksForList } from "../database";
+import { deleteTask, deleteTaskContactsByTaskId, fetchTasksForList } from "../database";
 import { useFocusEffect } from "@react-navigation/native";
 import Icon from 'react-native-vector-icons/FontAwesome';
 
@@ -15,7 +15,7 @@ export default function HomeScreen({ navigation }) {
 
     const handleDelete = (id) => {
         deleteTask(id);
-        deleteTaskContacts(id);
+        deleteTaskContactsByTaskId(id);
         fetchTasksForList(setTasks);
     }
 

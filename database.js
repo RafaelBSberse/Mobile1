@@ -1,6 +1,6 @@
 import * as SQLite from "expo-sqlite";
 
-const db = SQLite.openDatabase("TasksDB");
+const db = SQLite.openDatabase("TasksDB2");
 
 export const initDB = () => {
     createTaskTable();
@@ -51,13 +51,14 @@ export const createTasksContactsTable = () => {
 };
 
 export const closeDB = () => {
-    db._db.close();
-    () => {
-        console.log("Database closed!");
-    },
-        (error) => {
-            console.error("Error closing database", error);
-        };
+    if (db && db._db) {
+        db._db.close(
+            () => console.log("Database closed successfully"),
+            (error) => console.error("Error closing database", error)
+        );
+    } else {
+        console.log("Database was not open");
+    }
 };
 
 export const dropTableTasks = () => {
@@ -92,7 +93,7 @@ export const dropTable = () => {
     dropTableTasks();
     dropTableContacts();
     dropTableTasksContacts();
-}
+};
 
 export const dropTableTasksContacts = () => {
     db.transaction((tx) => {
@@ -148,7 +149,7 @@ export const insertTaskContact = (taskId, contactId) => {
 };
 
 export const fetchTasksForList = (setTasks) => {
-    console.log("carregando")
+    console.log("carregando");
 
     db.transaction((tx) => {
         tx.executeSql(
@@ -193,11 +194,27 @@ export const deleteTask = (id) => {
     });
 };
 
-export const deleteTaskContacts = (idTask) => {
+export const deleteTaskContactsByTaskId = (idTask) => {
     db.transaction((tx) => {
         tx.executeSql(
             "DELETE FROM TasksContacts WHERE taskId = ?;",
             [idTask],
+            (_, resultSet) => {
+                console.log("TaskContacts deleted successfully");
+            },
+            (_, error) => {
+                console.log("Error deleting TaskContacts", error);
+                return true;
+            }
+        );
+    });
+};
+
+export const deleteTaskContactsByContactId = (idContact) => {
+    db.transaction((tx) => {
+        tx.executeSql(
+            "DELETE FROM TasksContacts WHERE contactId = ?;",
+            [idContact],
             (_, resultSet) => {
                 console.log("TaskContacts deleted successfully");
             },
@@ -228,7 +245,7 @@ export const deleteContact = (id) => {
 export const updateTask = (id, taskName, taskDescription, date, time) => {
     db.transaction((tx) => {
         tx.executeSql(
-            "UPDATE Tasks SET taskName = ?, taskDescription = ?, date = ?, time = ? WHERE id = ?;",
+            "UPDATE Tasks SET taskName = ?, taskDescription = ?, taskDate = ?, taskTime = ? WHERE id = ?;",
             [taskName, taskDescription, date, time, id],
             (_, resultSet) => {
                 console.log("Task updated successfully");
