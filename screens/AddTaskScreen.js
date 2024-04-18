@@ -7,14 +7,14 @@ import {
     Button,
     StyleSheet,
 } from "react-native";
-import { fetchContactsForList, getContactIdsByTaskId, getTaskById, insertTask, insertTaskContact, updateTask } from "../database";
+import { deleteTaskContacts, fetchContactsForList, getContactIdsByTaskId, getTaskById, insertTask, insertTaskContact, updateTask } from "../database";
 import DropDownPicker from 'react-native-dropdown-picker';
 import { useFocusEffect } from "@react-navigation/native";
 
 export default function AddTaskScreen({ navigation, route }) {
     const { taskId = null } = route?.params ?? {};
 
-    const [isEdit, setIsEdit] = useState(!taskId)
+    const [isEdit, setIsEdit] = useState(!taskId);
 
     const [date, setDate] = useState(new Date());
     const [showDate, setShowDate] = useState(false);
@@ -68,11 +68,13 @@ export default function AddTaskScreen({ navigation, route }) {
 
         if (taskId && taskId > 0) {
             updateTask(taskId, taskName, taskDescription, dateString, timeString);
+            deleteTaskContacts(taskId);
+            selectedContacts.forEach((contactId) => insertTaskContact(taskId, contactId));
             return;
         }
 
-        insertTask(taskName, taskDescription, dateString, timeString, (taskId) => {
-            selectedContacts.forEach((contactId) => insertTaskContact(taskId, contactId));
+        insertTask(taskName, taskDescription, dateString, timeString, (taskIdReturn) => {
+            selectedContacts.forEach((contactId) => insertTaskContact(taskIdReturn, contactId));
         });
 
         navigation.goBack();

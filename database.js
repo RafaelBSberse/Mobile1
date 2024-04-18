@@ -193,6 +193,22 @@ export const deleteTask = (id) => {
     });
 };
 
+export const deleteTaskContacts = (idTask) => {
+    db.transaction((tx) => {
+        tx.executeSql(
+            "DELETE FROM TasksContacts WHERE taskId = ?;",
+            [idTask],
+            (_, resultSet) => {
+                console.log("TaskContacts deleted successfully");
+            },
+            (_, error) => {
+                console.log("Error deleting TaskContacts", error);
+                return true;
+            }
+        );
+    });
+};
+
 export const deleteContact = (id) => {
     db.transaction((tx) => {
         tx.executeSql(
