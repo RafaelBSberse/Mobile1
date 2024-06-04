@@ -1,25 +1,16 @@
-import React, { useEffect, useState } from "react";
+import React from "react";
 import { NavigationContainer } from "@react-navigation/native";
 import { createStackNavigator } from "@react-navigation/stack";
 import { StatusBar } from "expo-status-bar";
 
 import HomeScreen from "./screens/HomeScreen";
 import AddTaskScreen from "./screens/AddTaskScreen";
-import { closeDB, dropTable, initDB } from "./database";
 import AddContactScreen from "./screens/AddContactScreen";
 import ContactList from "./screens/ContactList";
 
 const Stack = createStackNavigator();
 
 export default function App() {
-    useEffect(() => {
-        initDB();
-
-        return () => {
-            closeDB();
-        };
-    }, []);
-
     return (
         <NavigationContainer>
             <Stack.Navigator initialRouteName="Lista de Tarefas">

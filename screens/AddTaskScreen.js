@@ -1,15 +1,18 @@
 import DateTimePicker from "@react-native-community/datetimepicker";
 import React, { useEffect, useState } from "react";
+import { View, Text, TextInput, Button, StyleSheet, Alert } from "react-native";
 import {
-    View,
-    Text,
-    TextInput,
-    Button,
-    StyleSheet,
-} from "react-native";
-import { deleteTaskContactsByTaskId, fetchContactsForList, getContactIdsByTaskId, getTaskById, insertTask, insertTaskContact, updateTask } from "../database";
-import DropDownPicker from 'react-native-dropdown-picker';
+    deleteTaskContactsByTaskId,
+    fetchContactsForList,
+    getContactIdsByTaskId,
+    getTaskById,
+    insertTask,
+    insertTaskContact,
+    updateTask,
+} from "../database";
+import DropDownPicker from "react-native-dropdown-picker";
 import { useFocusEffect } from "@react-navigation/native";
+import { hasHardwareAsync, isEnrolledAsync, authenticateAsync } from 'expo-local-authentication';
 
 export default function AddTaskScreen({ navigation, route }) {
     const { taskId = null } = route?.params ?? {};
@@ -32,7 +35,12 @@ export default function AddTaskScreen({ navigation, route }) {
     useFocusEffect(
         React.useCallback(() => {
             fetchContactsForList((result) => {
-                setContacts(result.map(contact => ({label: contact.name, value: contact.id})));
+                setContacts(
+                    result.map((contact) => ({
+                        label: contact.name,
+                        value: contact.id,
+                    }))
+                );
             });
         }, [])
     );
@@ -50,7 +58,7 @@ export default function AddTaskScreen({ navigation, route }) {
         }
     }, [taskId]);
 
-    const onChange = (event, selectedDate) => { 
+    const onChange = (event, selectedDate) => {
         const currentDate = selectedDate || date;
         setDate(currentDate);
         setShowDate(false);
@@ -62,32 +70,63 @@ export default function AddTaskScreen({ navigation, route }) {
         setShowTimePicker(false);
     };
 
-    const addTask = () => {
-        const dateSting = date.toISOString();
-        const timeString = time.toISOString();
+    const addTask = async () => {
+        // Verifica se possui leitor de digital no aparelho
+        const hasHardware = await hasHardwareAsync();
 
-        if (taskId && taskId > 0) {
-            updateTask(taskId, taskName, taskDescription, dateSting, timeString);
-            deleteTaskContactsByTaskId(taskId);
-            selectedContacts.forEach((contactId) => insertTaskContact(taskId, contactId));
-            setIsEdit(false);
-
-            return;
+        // Verifica se possui digital cadastrada no aparelho
+        const isEnrolled = await isEnrolledAsync();
+    
+        if (hasHardware && isEnrolled) {
+            // Autentica o usuário pelo leitor de digital/Pin
+            const authResult = await authenticateAsync();
+    
+            if (authResult.success) {
+                const dateSting = date.toISOString();
+                const timeString = time.toISOString();
+    
+                if (taskId && taskId > 0) {
+                    updateTask(taskId, taskName, taskDescription, dateSting, timeString);
+                    deleteTaskContactsByTaskId(taskId);
+                    selectedContacts.forEach((contactId) => insertTaskContact(taskId, contactId));
+                    setIsEdit(false);
+                    return;
+                }
+    
+                insertTask(taskName, taskDescription, dateSting, timeString, (taskIdReturn) => {
+                    selectedContacts.forEach((contactId) => insertTaskContact(taskIdReturn, contactId));
+                });
+    
+                navigation.goBack();
+            } else {
+                Alert.alert('Autenticação falhou: ', authResult.error);
+            }
+        } else {
+            console.log('Biometric sensor not available');
         }
+    }
 
-        insertTask(taskName, taskDescription, dateSting, timeString, (taskIdReturn) => {
-            selectedContacts.forEach((contactId) => insertTaskContact(taskIdReturn, contactId));
-        });
-
-        navigation.goBack();
+    const getSelectedContactsLabels = () => {
+        return selectedContacts
+            .map((idContato) => {
+                const contact = contacts.find(
+                    (contato) => contato.value == idContato
+                );
+                if (contact) return contact.label;
+            })
+            .filter((value) => value)
+            .join(", ");
     };
-
-    console.log(date, time)
 
     return (
         <View style={styles.container}>
             <Text style={styles.label}>Título da Tarefa</Text>
-            <TextInput style={styles.input} onChangeText={setTaskName} value={taskName} editable={isEdit} />
+            <TextInput
+                style={styles.input}
+                onChangeText={setTaskName}
+                value={taskName}
+                editable={isEdit}
+            />
 
             <Text style={styles.label}>Descrição da Tarefa</Text>
             <TextInput
@@ -104,7 +143,7 @@ export default function AddTaskScreen({ navigation, route }) {
                 style={styles.input}
                 items={contacts}
                 multiple={true}
-                multipleText={selectedContacts.map((idContato) => contacts.find((contato) => contato.value == idContato).label).join(", ")}
+                multipleText={getSelectedContactsLabels()}
                 value={selectedContacts}
                 setValue={setSelectedContacts}
                 open={openDropdownContacts && isEdit}
@@ -114,7 +153,10 @@ export default function AddTaskScreen({ navigation, route }) {
             />
 
             <Text style={styles.label}>Data da Tarefa</Text>
-            <Text style={styles.input} onPress={() => isEdit && setShowDate(true)}>
+            <Text
+                style={styles.input}
+                onPress={() => isEdit && setShowDate(true)}
+            >
                 {date.toLocaleDateString([], {
                     year: "numeric",
                     month: "2-digit",
@@ -131,7 +173,10 @@ export default function AddTaskScreen({ navigation, route }) {
             )}
 
             <Text style={styles.label}>Horário da Tarefa</Text>
-            <Text style={styles.input} onPress={() => isEdit && setShowTimePicker(true)}>
+            <Text
+                style={styles.input}
+                onPress={() => isEdit && setShowTimePicker(true)}
+            >
                 {time.toLocaleTimeString([], {
                     hour: "2-digit",
                     minute: "2-digit",
@@ -147,7 +192,13 @@ export default function AddTaskScreen({ navigation, route }) {
             )}
 
             <Button
-                title={isEdit ? ( taskId ? "Salvar Tarefa" : "Adicionar Tarefa" ) : "Editar Tarefa"}
+                title={
+                    isEdit
+                        ? taskId
+                            ? "Salvar Tarefa"
+                            : "Adicionar Tarefa"
+                        : "Editar Tarefa"
+                }
                 onPress={isEdit ? addTask : () => setIsEdit(true)}
             />
         </View>

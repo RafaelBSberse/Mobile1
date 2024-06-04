@@ -1,307 +1,137 @@
-import * as SQLite from "expo-sqlite";
+import { createClient } from '@supabase/supabase-js'
 
-const db = SQLite.openDatabase("TasksDB2");
+const PROJECT_URL = process.env.EXPO_PUBLIC_PROJECT_URL;
+const ANON_KEY = process.env.EXPO_PUBLIC_ANON_KEY;
 
-export const initDB = () => {
-    createTaskTable();
-    createContactsTable();
-    createTasksContactsTable();
-};
+const supabase = createClient(PROJECT_URL, ANON_KEY)
 
-export const createTaskTable = () => {
-    db.transaction((tx) => {
-        tx.executeSql(
-            "CREATE TABLE IF NOT EXISTS Tasks (id INTEGER PRIMARY KEY AUTOINCREMENT, taskName TEXT, taskDescription TEXT, taskDate DATE, taskTime TIME);",
-            [],
-            () => console.log("Table created successfully"),
-            (_, error) => {
-                console.log("Error creating table", error);
-                return true;
-            }
-        );
-    });
-};
-
-export const createContactsTable = () => {
-    db.transaction((tx) => {
-        tx.executeSql(
-            "CREATE TABLE IF NOT EXISTS Contacts (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, email TEXT, phone TEXT);",
-            [],
-            () => console.log("Contacts table created successfully"),
-            (_, error) => {
-                console.log("Error creating Contacts table", error);
-                return true;
-            }
-        );
-    });
-};
-
-export const createTasksContactsTable = () => {
-    db.transaction((tx) => {
-        tx.executeSql(
-            "CREATE TABLE IF NOT EXISTS TasksContacts (taskId INTEGER, contactId INTEGER, PRIMARY KEY(taskId, contactId), FOREIGN KEY(taskId) REFERENCES Tasks(id), FOREIGN KEY(contactId) REFERENCES Contacts(id));",
-            [],
-            () => console.log("TasksContacts table created successfully"),
-            (_, error) => {
-                console.log("Error creating TasksContacts table", error);
-                return true;
-            }
-        );
-    });
-};
-
-export const closeDB = () => {
-    if (db && db._db) {
-        db._db.close(
-            () => console.log("Database closed successfully"),
-            (error) => console.error("Error closing database", error)
-        );
-    } else {
-        console.log("Database was not open");
+export const insertTask = async (
+    taskname,
+    taskdescription,
+    taskdate,
+    tasktime,
+    callback
+) => {
+    const { data, error } = await supabase
+        .from('tasks')
+        .insert([
+            { taskname, taskdescription, taskdate, tasktime }
+        ])
+        .select("id");
+    if (error) console.log("Error inserting data", error);
+    else {
+        console.log("Data inserted successfully", data);
+        callback && callback(data[0].id);
     }
 };
 
-export const dropTableTasks = () => {
-    db.transaction((tx) => {
-        tx.executeSql(
-            "DROP TABLE IF EXISTS Tasks;",
-            [],
-            () => console.log("Table dropped successfully"),
-            (_, error) => {
-                console.log("Error dropping table", error);
-                return true;
-            }
-        );
-    });
+export const insertTaskContact = async (taskid, contactid) => {
+    const { data, error } = await supabase
+        .from('taskscontacts')
+        .insert([
+            { taskid, contactid }
+        ]);
+    if (error) console.log("Error inserting TasksContacts", error);
+    else console.log("TasksContacts inserted successfully");
 };
 
-export const dropTableContacts = () => {
-    db.transaction((tx) => {
-        tx.executeSql(
-            "DROP TABLE IF EXISTS Contacts;",
-            [],
-            () => console.log("Table dropped successfully"),
-            (_, error) => {
-                console.log("Error dropping table", error);
-                return true;
-            }
-        );
-    });
+export const fetchTasksForList = async (setTasks) => {
+    const { data, error } = await supabase
+        .from('tasks')
+        .select('id, taskname');
+    if (error) console.log("Error fetching tasks", error);
+    else setTasks(data.map(item => ({ id: item.id, taskName: item.taskname })));
 };
 
-export const dropTable = () => {
-    dropTableTasks();
-    dropTableContacts();
-    dropTableTasksContacts();
+export const fetchContactsForList = async (setContacts) => {
+    const { data, error } = await supabase
+        .from('contacts')
+        .select('id, name, phone');
+    if (error) console.log("Error fetching tasks", error);
+    else setContacts(data);
 };
 
-export const dropTableTasksContacts = () => {
-    db.transaction((tx) => {
-        tx.executeSql(
-            "DROP TABLE IF EXISTS TasksContacts;",
-            [],
-            () => console.log("Table dropped successfully"),
-            (_, error) => {
-                console.log("Error dropping table", error);
-                return true;
-            }
-        );
-    });
+export const deleteTask = async (id) => {
+    const { data, error } = await supabase
+        .from('tasks')
+        .delete()
+        .match({ id });
+    if (error) console.log("Error deleting task", error);
+    else console.log("Task deleted successfully");
 };
 
-export const insertTask = (
-    taskName,
-    taskDescription,
-    taskDate,
-    taskTime,
-    callback
-) => {
-    db.transaction((tx) => {
-        tx.executeSql(
-            "INSERT INTO Tasks (taskName, taskDescription, taskDate, taskTime) values (?, ?, ?, ?)",
-            [taskName, taskDescription, taskDate, taskTime],
-            (_, resultSet) => {
-                console.log("Data inserted successfully", resultSet);
-                callback && callback(resultSet.insertId);
-            },
-            (_, error) => {
-                console.log("Error inserting data", error);
-                return true;
-            }
-        );
-    });
+export const deleteTaskContactsByTaskId = async (idTask) => {
+    const { data, error } = await supabase
+        .from('taskscontacts')
+        .delete()
+        .match({ taskid: idTask });
+    if (error) console.log("Error deleting TaskContacts", error);
+    else console.log("TaskContacts deleted successfully");
 };
 
-export const insertTaskContact = (taskId, contactId) => {
-    db.transaction((tx) => {
-        tx.executeSql(
-            "INSERT INTO TasksContacts (taskId, contactId) VALUES (?, ?);",
-            [taskId, contactId],
-            (_, resultSet) => {
-                console.log("TasksContacts inserted successfully");
-            },
-            (_, error) => {
-                console.log("Error inserting TasksContacts", error);
-                return true;
-            }
-        );
-    });
+export const deleteTaskContactsByContactId = async (idContact) => {
+    const { data, error } = await supabase
+        .from('taskscontacts')
+        .delete()
+        .match({ contactid: idContact });
+    if (error) console.log("Error deleting TaskContacts", error);
+    else console.log("TaskContacts deleted successfully");
 };
 
-export const fetchTasksForList = (setTasks) => {
-    console.log("carregando");
-
-    db.transaction((tx) => {
-        tx.executeSql(
-            "SELECT id, taskName FROM Tasks;",
-            [],
-            (_, resultSet) => setTasks(resultSet.rows._array),
-            (_, error) => {
-                console.log("Error fetching tasks", error);
-                return true;
-            }
-        );
-    });
+export const deleteContact = async (id) => {
+    const { data, error } = await supabase
+        .from('contacts')
+        .delete()
+        .match({ id });
+    if (error) console.log("Error deleting task", error);
+    else console.log("Contact deleted successfully");
 };
 
-export const fetchContactsForList = (setContacts) => {
-    db.transaction((tx) => {
-        tx.executeSql(
-            "SELECT id, name, phone FROM Contacts;",
-            [],
-            (_, resultSet) => setContacts(resultSet.rows._array),
-            (_, error) => {
-                console.log("Error fetching tasks", error);
-                return true;
-            }
-        );
-    });
+export const updateTask = async (id, taskname, taskdescription, date, time) => {
+    const { data, error } = await supabase
+        .from('tasks')
+        .update({ taskname, taskdescription, taskdate: date, tasktime: time })
+        .match({ id });
+    if (error) console.log("Error updating task", error);
+    else console.log("Task updated successfully");
 };
 
-export const deleteTask = (id) => {
-    db.transaction((tx) => {
-        tx.executeSql(
-            "DELETE FROM Tasks WHERE id = ?;",
-            [id],
-            (_, resultSet) => {
-                console.log("Task deleted successfully");
-            },
-            (_, error) => {
-                console.log("Error deleting task", error);
-                return true;
-            }
-        );
-    });
+export const getTaskById = async (id, callback) => {
+    const { data, error } = await supabase
+        .from('tasks')
+        .select('*')
+        .match({ id });
+    if (error) console.log("Error fetching task", error);
+    else {
+        callback && callback({
+            taskName: data[0].taskname,
+            taskDescription: data[0].taskdescription,
+            taskDate: data[0].taskdate,
+            taskTime: data[0].tasktime
+        });
+
+        console.log("Task fetched successfully");
+    }
 };
 
-export const deleteTaskContactsByTaskId = (idTask) => {
-    db.transaction((tx) => {
-        tx.executeSql(
-            "DELETE FROM TasksContacts WHERE taskId = ?;",
-            [idTask],
-            (_, resultSet) => {
-                console.log("TaskContacts deleted successfully");
-            },
-            (_, error) => {
-                console.log("Error deleting TaskContacts", error);
-                return true;
-            }
-        );
-    });
+export const getContactIdsByTaskId = async (taskid, callback) => {
+    const { data, error } = await supabase
+        .from('taskscontacts')
+        .select('contactid')
+        .match({ taskid });
+    if (error) console.log("Error fetching contact ids", error);
+    else {
+        const ids = data.map(item => item.contactid);
+        callback(ids);
+    }
 };
 
-export const deleteTaskContactsByContactId = (idContact) => {
-    db.transaction((tx) => {
-        tx.executeSql(
-            "DELETE FROM TasksContacts WHERE contactId = ?;",
-            [idContact],
-            (_, resultSet) => {
-                console.log("TaskContacts deleted successfully");
-            },
-            (_, error) => {
-                console.log("Error deleting TaskContacts", error);
-                return true;
-            }
-        );
-    });
-};
-
-export const deleteContact = (id) => {
-    db.transaction((tx) => {
-        tx.executeSql(
-            "DELETE FROM Contacts WHERE id = ?;",
-            [id],
-            (_, resultSet) => {
-                console.log("Contact deleted successfully");
-            },
-            (_, error) => {
-                console.log("Error deleting task", error);
-                return true;
-            }
-        );
-    });
-};
-
-export const updateTask = (id, taskName, taskDescription, date, time) => {
-    db.transaction((tx) => {
-        tx.executeSql(
-            "UPDATE Tasks SET taskName = ?, taskDescription = ?, taskDate = ?, taskTime = ? WHERE id = ?;",
-            [taskName, taskDescription, date, time, id],
-            (_, resultSet) => {
-                console.log("Task updated successfully");
-            },
-            (_, error) => {
-                console.log("Error updating task", error);
-                return true;
-            }
-        );
-    });
-};
-
-export const getTaskById = (id, callback) => {
-    db.transaction((tx) => {
-        tx.executeSql(
-            "SELECT * FROM Tasks WHERE id = ?;",
-            [id],
-            (_, resultSet) => {
-                callback && callback(resultSet.rows._array[0]);
-                console.log("Task fetched successfully");
-            },
-            (_, error) => {
-                console.log("Error fetching task", error);
-                return true;
-            }
-        );
-    });
-};
-
-export const getContactIdsByTaskId = (taskId, callback) => {
-    db.transaction((tx) => {
-        tx.executeSql(
-            "SELECT contactId FROM TasksContacts WHERE taskId = ?;",
-            [taskId],
-            (_, resultSet) => {
-                const ids = [];
-                for (let i = 0; i < resultSet.rows.length; i++) {
-                    ids.push(resultSet.rows.item(i).contactId);
-                }
-                callback(ids);
-            }
-        );
-    });
-};
-
-export const insertContact = (name, email, phone) => {
-    db.transaction((tx) => {
-        tx.executeSql(
-            "INSERT INTO Contacts (name, email, phone) values (?, ?, ?)",
-            [name, email, phone],
-            (_, resultSet) =>
-                console.log("Contact added successfully", resultSet),
-            (_, error) => {
-                console.log("Error inserting into Contacts", error);
-                return true;
-            }
-        );
-    });
+export const insertContact = async (name, email, phone) => {
+    const { data, error } = await supabase
+        .from('contacts')
+        .insert([
+            { name, email, phone }
+        ]);
+    if (error) console.log("Error inserting into Contacts", error);
+    else console.log("Contact added successfully", data);
 };
