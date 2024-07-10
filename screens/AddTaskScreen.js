@@ -13,8 +13,11 @@ import {
 import DropDownPicker from "react-native-dropdown-picker";
 import { useFocusEffect } from "@react-navigation/native";
 import { hasHardwareAsync, isEnrolledAsync, authenticateAsync } from 'expo-local-authentication';
+import { useSendNotification } from "../hooks/useSendNotification";
 
 export default function AddTaskScreen({ navigation, route }) {
+    const sendNotification = useSendNotification();
+
     const { taskId = null } = route?.params ?? {};
 
     const [isEdit, setIsEdit] = useState(!taskId);
@@ -95,6 +98,17 @@ export default function AddTaskScreen({ navigation, route }) {
     
                 insertTask(taskName, taskDescription, dateSting, timeString, (taskIdReturn) => {
                     selectedContacts.forEach((contactId) => insertTaskContact(taskIdReturn, contactId));
+                }).then((taskIdReturn) => {
+                    sendNotification({
+                        title: "Nova Tarefa",
+                        body: `Tarefa "${taskName}" adicionada com sucesso!`,
+                        data: { taskId: taskIdReturn },
+                    });
+                }).catch((error) => {
+                    sendNotification({
+                        title: "Erro ao adicionar tarefa",
+                        body: `Erro ao adicionar a tarefa "${taskName}": ${error}`,
+                    });
                 });
     
                 navigation.goBack();

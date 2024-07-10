@@ -38,9 +38,9 @@ export const insertTaskContact = async (taskid, contactid) => {
 export const fetchTasksForList = async (setTasks) => {
     const { data, error } = await supabase
         .from('tasks')
-        .select('id, taskname');
+        .select('id, taskname, taskdate');
     if (error) console.log("Error fetching tasks", error);
-    else setTasks(data.map(item => ({ id: item.id, taskName: item.taskname })));
+    else setTasks(data.map(item => ({ id: item.id, taskName: item.taskname, taskDate: item.taskdate})));
 };
 
 export const fetchContactsForList = async (setContacts) => {

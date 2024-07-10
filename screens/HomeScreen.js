@@ -3,13 +3,33 @@ import { View, Button, StyleSheet, FlatList, Text, TouchableOpacity } from "reac
 import { deleteTask, deleteTaskContactsByTaskId, fetchTasksForList } from "../database";
 import { useFocusEffect } from "@react-navigation/native";
 import Icon from 'react-native-vector-icons/FontAwesome';
+import { useSendNotification } from "../hooks/useSendNotification";
 
 export default function HomeScreen({ navigation }) {
     const [tasks, setTasks] = useState([]);
+    const sendNotification = useSendNotification();
 
     useFocusEffect(
         React.useCallback(() => {
-            fetchTasksForList(setTasks);
+            fetchTasksForList(setTasks).then(() => {
+                const today = new Date();
+
+                const todayTasks = tasks.filter((task) => {
+                    const taskDate = new Date(task.taskDate);
+                    console.log(taskDate);
+                    return taskDate.getUTCDate() === today.getUTCDate() && taskDate.getUTCMonth() === today.getUTCMonth() && taskDate.getUTCFullYear() === today.getUTCFullYear();
+                });
+
+                if (todayTasks.length === 0) {
+                    return;
+                }
+
+                sendNotification({
+                    title: "Tarefas para hoje",
+                    body: todayTasks.map((task) => task.taskName).join(", "),
+                    data: { tasks: todayTasks },
+                });
+            });
         }, [])
     );
 
